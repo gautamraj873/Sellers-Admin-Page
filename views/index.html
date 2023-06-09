@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Seller's Admin Page with total stock value</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <h1>Selling Products</h1>
+
+        <form id="productForm">
+            <label for="sellingPrice">Selling Price:</label>
+            <input type="number" id="sellingPrice" name="sellingPrice" required>
+        
+            <label for="productName">Product Name:</label>
+            <input type="text" id="productName" name="productName" required>
+        
+            <button type="submit" id="addProductButton" onclick="handleSubmit(event)">Add Product</button>
+        </form>
+
+        <div id="totalValue">
+
+        </div>
+        
+        <div id="productList">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">id</th>
+                        <th scope="col">selling price</th>
+                        <th scope="col">product name</th>
+                        <th scope="col">action</th>
+                    </tr>
+                </thead>
+                <tbody id="productData">
+        
+                </tbody>
+            </table>
+        </div>
+        
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                axios.get('http://localhost:3000/product')
+                    .then(response => {
+                        const productData = response.data;
+                        const tablebody = document.getElementById('productData');
+                        let tableHTML = '';
+                        let totalValue =0;
+
+                        if(Array.isArray(productData)){
+                            productData.forEach(product => {
+                                tableHTML += `
+                                <tr id="row-id-${product.id}">
+                                    <td>${product.id}</td>
+                                    <td>${product.sellingPrice}</td>
+                                    <td>${product.productName}</td>
+                                    <td>
+                                        <button type="button" onclick="handleDelete('${product.id}')">Delete</button>
+                                    </td>
+                                </tr>
+                                `;
+                                totalValue += product.sellingPrice;
+                            });
+                        }
+
+                        tablebody.innerHTML = tableHTML;
+
+                        const totalValueElement = document.getElementById('totalValue');
+                        totalValueElement.textContent = `Total value worth of products: Rs ${totalValue}`;
+                    })
+                    .catch(error => {
+                        console.log(error);
+                    });
+            });
+
+            
+            const handleDelete = (productId)=> {
+                if(confirm('Are you sure?')){
+                    axios.delete(`http://localhost:3000/product/${productId}`)
+                        .then(() => {
+                            const deletedRow = document.getElementById(`row-id-${productId}`);
+                            if(deletedRow){
+                                deletedRow.remove();
+                            }
+                        })
+                        .catch(error => {
+                            console.log(error);
+                        });
+                    }
+            };
+
+            const handleSubmit = (event)=> {
+                event.preventDefault();
+                const productData = {
+                    sellingPrice: document.getElementById("sellingPrice").value,
+                    productName: document.getElementById("productName").value
+                };
+
+                axios.post('http://localhost:3000/product', productData)
+                    .then(response => {
+                        const newProduct = response.data;
+                        const tablebody = document.getElementById('productData');
+
+                        const newRow = document.createElement('tr');
+                        newRow.id = `row-id-${newProduct.id}`;
+                        newRow.innerHTML = `
+                            <td>${newProduct.id}</td>
+                            <td>${newProduct.sellingPrice}</td>
+                            <td>${newProduct.productName}</td>
+                            <td>
+                                <button type="button" onclick="handleDelete('${newProduct.id}')">Delete</button>
+                            </td>
+                        `;
+
+                        tablebody.appendChild(newRow);
+
+                        // Clear input fields
+                        document.getElementById("sellingPrice").value = '';
+                        document.getElementById("productName").value = '';
+                    })
+                    .catch(err => {
+                            console.log(err);
+                    });
+            };
+        </script>
+
+    </body>
+</html>
